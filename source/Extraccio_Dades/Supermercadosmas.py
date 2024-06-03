@@ -4,6 +4,7 @@ import urllib3
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import pandas as pd
+from datetime import datetime  
 
 # Crear un DataFrame para guardar los productos, variable global para poder acceder a ella desde las funciones
 # df_productos = pd.DataFrame(columns=['Nombre', 'Marca', 'Precio', 'Supermercado', 'URL'])
@@ -14,6 +15,10 @@ import pandas as pd
 # Identificar propietario de la web
 # print(whois.whois('https://www.supermercadosmas.com/'))
 
+# df_productos = pd.DataFrame(columns=['Nombre', 'Marca', 'Precio', 'Supermercado', 'URL', 'Fecha', 'Hora', 'unidad','precio_unidad', 'Categoria', 'Subcategoria', 'Estado'])
+
+# url_SupermercadosMas= 'https://www.supermercadosmas.com/media/sitemap/sitemap.xml'
+
 # Función para obtener los datos de un producto
 def datosProducto(urlProducto,df_productos):
     # Desactiva los warnings de certificados SSL
@@ -22,24 +27,64 @@ def datosProducto(urlProducto,df_productos):
     response = http.request('GET', urlProducto)
     soup = BeautifulSoup(response.data, 'html.parser')
 
+    # Obtener la fecha y hora actuales
+    now = datetime.now()
+    fecha = now.strftime("%Y-%m-%d")
+    hora = now.strftime("%H:%M:%S")
+
     #Try para evitar errores en la ejecución, algunas url no tienen ya productos
     try:
-        # Encuentra el precio y la referencia/nombre del producto
-        precio_wrapper = soup.find('span', {'class': 'price-wrapper'})
-        #precio con clase price
-        precio = precio_wrapper.find('span', {'class': 'price'}).text.strip()
+        precio_meta_element = soup.find('meta', itemprop='price')
+        precio = precio_meta_element['content'].strip() if precio_meta_element else 'Precio no disponible'
+
         #nombre con itemprop name
-        nombre = soup.find('span', {'itemprop': 'name'}).text.strip()
+        nombre_element = soup.find('p', {'class': 'base title-font mb-0 xl:text-[2vw]'})
+        nombre = nombre_element.text.strip() if nombre_element else 'Nombre no disponible'
+
         # #marca con clase product-item-attribute-brand
-        brand_element = soup.find('p', {'class': 'product-item-attribute-brand'})
-        if brand_element:
-            marca = brand_element.text.strip()
+        marca_element = soup.find('div', {'class': 'my-1 flex text-xs text-grey-medium'}).find('span')
+        marca = marca_element.text.strip() if marca_element else 'Marca no disponible'
+
+        unidad_precio_unidad_element = soup.find('span', {'class': 'custom_field_3'})
+        if unidad_precio_unidad_element:
+            # Convertir el contenido interno a BeautifulSoup para poder parsearlo
+            contenido_interno = BeautifulSoup(unidad_precio_unidad_element.text, 'html.parser')
+            
+            # Extraer la unidad
+            div_unidad = contenido_interno.find('div')
+            unidad = div_unidad.text.strip() if div_unidad else 'Unidad no disponible'
+            
+            # Extraer el precio por unidad
+            span_precio_unidad = contenido_interno.find('span')
+            precio_unidad = span_precio_unidad.text.strip() if span_precio_unidad else 'Precio por unidad no disponible'
         else:
-            marca = 'No disponible'
+            unidad = 'Unidad no disponible'
+            precio_unidad = 'Precio por unidad no disponible'
+
+
+        breadcrumbs = soup.find('ol', {'class': 'py-4 flex flex-wrap text-xs'})
+        if breadcrumbs:
+            links = breadcrumbs.find_all('a')
+            if len(links) > 2:
+                categoria = links[-2].text.strip()  # Penúltimo enlace como categoría
+                subcategoria = links[-1].text.strip()  # Último enlace como subcategoría
+            else:
+                categoria = 'Categoría no disponible'
+                subcategoria = 'Subcategoría no disponible'
+        else:
+            categoria = 'Categoría no disponible'
+            subcategoria = 'Subcategoría no disponible'
+
+
+        estado_elemento = soup.find('button', {'id': 'product-addtocart-button'})
+        estado = estado_elemento.find('span').text.strip() if estado_elemento else 'Estado no disponible'
 
         # # Añadir a la lista de productos
-        df_productos.loc[len(df_productos)] = [nombre, marca, precio, 'Supermercados Mas', urlProducto]
-        print('Producto:', nombre, 'Marca:', marca, 'Precio:', precio)
+        df_productos.loc[len(df_productos)] = [
+            nombre, marca, precio, 'Supermercados Mas', urlProducto,
+            fecha, hora, unidad, precio_unidad, categoria, subcategoria, estado
+        ]
+        print('Producto añadido:', nombre + ' Marca: ' + marca + ' Precio: ' + precio + ' Supermercado: Supermercados Mas' + ' URL: ' + urlProducto + ' Fecha: ' + fecha + ' Hora: ' + hora + ' Unidad: ' + unidad + ' Precio por unidad: ' + precio_unidad + ' Categoria: ' + categoria + ' Subcategoria: ' + subcategoria + ' Estado: ' + estado)
     except AttributeError:
         print('Error en producto:', urlProducto)
 
@@ -70,3 +115,5 @@ def crawl_sitemap_SupermercadosMas(url,df_productos):
 # #Descargar los precios de los productos en excel
 # df_productos.to_excel('productos_supermercados_mas.xlsx', index=False)
 
+
+# crawl_sitemap_SupermercadosMas(url_SupermercadosMas,df_productos)

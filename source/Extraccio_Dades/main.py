@@ -11,8 +11,9 @@ url_consum_map = 'https://tienda.consum.es/sitemap_product_es.xml'
 url_Dia = 'https://www.supermercadosmas.com/'
 url_Dia_map = 'https://www.dia.es/sitemap.xml'
 
-url_SupermercadosMas_1 = 'https://www.supermercadosmas.com/pub/media/sitemap-1-1.xml'
-url_SupermercadosMas_2 = 'https://www.supermercadosmas.com/pub/media/sitemap-1-2.xml'
+# url_SupermercadosMas_1 = 'https://www.supermercadosmas.com/pub/media/sitemap-1-1.xml'
+# url_SupermercadosMas_2 = 'https://www.supermercadosmas.com/pub/media/sitemap-1-2.xml'
+url_SupermercadosMas= 'https://www.supermercadosmas.com/media/sitemap/sitemap.xml'
 
 # Funció principal
 def main():
@@ -33,12 +34,13 @@ def main():
         print('Error en Consum')
         df_productos.to_csv('productos.csv', index=False)
 
-    # try:    
-    #     crawl_sitemap_SupermercadosMas(url_SupermercadosMas_1, df_productos)
-    #     crawl_sitemap_SupermercadosMas(url_SupermercadosMas_2, df_productos)
-    # except:
-    #     print('Error en SupermercadosMas')
-    #     df_productos.to_csv('productos.csv', index=False)
+    try:    
+        # crawl_sitemap_SupermercadosMas(url_SupermercadosMas_1, df_productos)
+        # crawl_sitemap_SupermercadosMas(url_SupermercadosMas_2, df_productos)
+        crawl_sitemap_SupermercadosMas(url_SupermercadosMas, df_productos)
+    except:
+        print('Error en SupermercadosMas')
+        df_productos.to_csv('productos.csv', index=False)
 
     try:
         crawl_sitemap_Dia(url_Dia_map, df_productos)
