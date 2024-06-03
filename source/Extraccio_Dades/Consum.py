@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
+from datetime import datetime  
 
 #Url de Consum
 # url_consum = 'https://tienda.consum.es'
@@ -26,6 +27,11 @@ def datosProducto(driver, df_productos, urlProducto):
         # Navega a la página
         driver.get(urlProducto)
 
+        # Captura la fecha y hora actuales
+        now = datetime.now()  # Obtiene el momento actual
+        fecha = now.strftime("%Y-%m-%d")  # Formato de fecha YYYY-MM-DD
+        hora = now.strftime("%H:%M:%S")  # Formato de hora HH:MM:SS
+
         # Espera fins que el preu sigui visible
         precio = WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.ID, "infoproduct-content--price"))
@@ -39,8 +45,31 @@ def datosProducto(driver, df_productos, urlProducto):
             EC.visibility_of_element_located((By.ID, "infoproduct-content--brand"))
         )
         
+        precio_unidad_element = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.ID, "infoproduct-content--unitprice"))
+        )
+
+        # Procesar el texto del precio por unidad para extraer el precio y la unidad
+        precio_unidad_texto = precio_unidad_element.text  # Ejemplo: "(1,35 € / 1 L)"
+        precio_unidad = precio_unidad_texto.split('/')[0].strip('() ')  # Ejemplo: "1,35 €"
+        unidad = precio_unidad_texto.split('/')[1].strip().strip(')')  # Ejemplo: "1 L", elimina el paréntesis derecho
+
+        # Captura el texto del botón que indica si se puede añadir el producto
+        estado_elemento = driver.find_element(By.CSS_SELECTOR, ".essential-unitselector__btn-add")
+        estado = estado_elemento.text if estado_elemento else 'Estado no disponible'
+
         # Agrega les dades al DataFrame
-        df_productos.loc[len(df_productos)] = [nombre.text, marca.text, precio.text, 'Consum', urlProducto]
+        # df_productos.loc[len(df_productos)] = [nombre.text, marca.text, precio.text, 'Consum', urlProducto]
+        df_productos.loc[len(df_productos)] = [
+            nombre.text, marca.text, precio.text, 'Consum', urlProducto,
+            fecha,  # Fecha de obtención
+            hora,   # Hora de obtención
+            unidad,  # Unidad de medida
+            precio_unidad,  # Precio por unidad
+            '', 
+            '',
+            estado
+        ]
         print(df_productos)
     except Exception as e:
         # Si hi ha un error, mostra'l per pantalla

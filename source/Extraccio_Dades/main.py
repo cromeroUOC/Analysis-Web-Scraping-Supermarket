@@ -24,7 +24,7 @@ def main():
         df_productos.drop(df_productos.index, inplace=True)
     except:
         # Creació de un DataFrame per guardar els productes
-        df_productos = pd.DataFrame(columns=['Nombre', 'Marca', 'Precio', 'Supermercado', 'URL'])
+        df_productos = pd.DataFrame(columns=['Nombre', 'Marca', 'Precio', 'Supermercado', 'URL', 'Fecha', 'Hora', 'unidad','precio_unidad', 'Categoria', 'Subcategoria', 'Estado'])
 
     # Cridar a les funcions per obtenir les dades
     try:
@@ -32,12 +32,14 @@ def main():
     except:
         print('Error en Consum')
         df_productos.to_csv('productos.csv', index=False)
-    try:    
-        crawl_sitemap_SupermercadosMas(url_SupermercadosMas_1, df_productos)
-        crawl_sitemap_SupermercadosMas(url_SupermercadosMas_2, df_productos)
-    except:
-        print('Error en SupermercadosMas')
-        df_productos.to_csv('productos.csv', index=False)
+
+    # try:    
+    #     crawl_sitemap_SupermercadosMas(url_SupermercadosMas_1, df_productos)
+    #     crawl_sitemap_SupermercadosMas(url_SupermercadosMas_2, df_productos)
+    # except:
+    #     print('Error en SupermercadosMas')
+    #     df_productos.to_csv('productos.csv', index=False)
+
     try:
         crawl_sitemap_Dia(url_Dia_map, df_productos)
     except:
