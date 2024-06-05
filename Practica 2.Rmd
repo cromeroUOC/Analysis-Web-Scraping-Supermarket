@@ -127,3 +127,91 @@ sum(is.na(productos$Nombre) & is.na(productos$Precio) & is.na(productos$unidad) 
 # Eliminamos todas las filas que se han contado anteriormente
 productos <- productos[!(is.na(productos$Nombre) & is.na(productos$Precio) & is.na(productos$unidad) & is.na(productos$precio_unidad)), ]
 ```
+
+Poemos realizar una estimación de la categoria y subcategoria por medio de las otras filas:
+
+```{r}
+library(readr)
+library(dplyr)
+library(stringr)
+library(stringi)
+
+
+# Separar datos en dos conjuntos: uno con categorías conocidas y otro sin ellas
+datos_con_categoria <- productos %>% filter(!is.na(Categoria) & !is.na(Subcategoria))
+datos_sin_categoria <- productos %>% filter(is.na(Categoria) | is.na(Subcategoria))
+
+# Función para escapar caracteres especiales en expresiones regulares
+escape_regex <- function(string) {
+  # Usamos stri_escape_unicode para escapar adecuadamente caracteres especiales
+  escaped_string <- stri_escape_unicode(string)
+  # Reemplazamos manualmente ciertos caracteres que necesitan doble escape en contextos regex
+  escaped_string <- gsub("([\\[\\]\\^\\$\\.\\|\\?\\*\\+\\(\\)\\{\\}\\=!<>:\\-])", "\\\\\\1", escaped_string, perl = TRUE)
+  return(escaped_string)
+}
+
+# Función para buscar coincidencias de palabras y asignar categorías
+asignar_categorias <- function(nombre_producto, datos_referencia) {
+  # Preparar patrón de búsqueda basado en el nombre del producto
+  # Dividir el nombre en palabras, escapar caracteres especiales y crear un patrón de búsqueda flexible
+  palabras <- unlist(str_split(nombre_producto, "\\s+"))
+  palabras <- sapply(palabras, escape_regex, USE.NAMES = FALSE)
+  patron <- paste(palabras, collapse = "|")
+  
+  # Buscar coincidencias en los nombres de productos con categorías conocidas
+  indices <- which(str_detect(datos_referencia$Nombre, regex(patron, ignore_case = TRUE)))
+  
+  if (length(indices) > 0) {
+    categorias_encontradas <- datos_referencia$Categoria[indices]
+    subcategorias_encontradas <- datos_referencia$Subcategoria[indices]
+    
+    # Devolver la categoría y subcategoría más frecuentes encontradas
+    categoria_final <- names(which.max(table(categorias_encontradas)))
+    subcategoria_final <- names(which.max(table(subcategorias_encontradas)))
+    return(c(categoria_final, subcategoria_final))
+  } else {
+    return(c(NA, NA))  # No se encontraron coincidencias
+  }
+}
+
+# Aplicar la función a cada producto sin categoría
+resultados <- lapply(datos_sin_categoria$Nombre, asignar_categorias, datos_con_categoria)
+resultados <- do.call(rbind, resultados)
+colnames(resultados) <- c("Categoria", "Subcategoria")
+
+# Unir los resultados con los datos originales sin categoría
+datos_sin_categoria[c("Categoria", "Subcategoria")] <- resultados
+
+# Combinar de nuevo con los datos originales
+productos_actualizados <- bind_rows(datos_con_categoria, datos_sin_categoria)
+
+
+```
+
+
+```{r}
+# Faltantes por supermercado
+table(productos_actualizados$Supermercado, is.na(productos_actualizados$Categoria)) %>% prop.table(margin = 2)
+
+# Faltantes por supermercado
+table(productos_actualizados$Supermercado, is.na(productos_actualizados$Subcategoria)) %>% prop.table(margin = 2)
+```
+```{r}
+# Filtrar productos del supermercado 'Consum'
+productos_consum <- productos %>%
+  filter(Supermercado == "Consum")
+
+# Visualizar los resultados
+print(productos_consum)
+
+
+# Filtrar productos del supermercado 'Consum'
+productos_consum_actualizado <- productos_actualizados %>%
+  filter(Supermercado == "Consum")
+
+# Visualizar los resultados
+print(productos_consum)
+
+print(productos_consum_actualizado)
+```
+
