@@ -1,0 +1,76 @@
+---
+title: "Practica 2"
+output: html_document
+date: "2024-06-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lectura de datos
+
+```{r lectura, include = FALSE}
+library(readr)
+library(stringr)
+library(dplyr)
+productos <- read_csv("productos.csv")
+```
+
+```{r head, include = FALSE}
+summary(productos)
+```
+
+## Preparación datos
+
+```{r nas, include = FALSE}
+# "Nombre no disponible" como NA
+productos$Nombre[productos$Nombre == "Nombre no disponible"] <- NA
+# "Marca no disponible como NA
+productos$Marca[productos$Marca == "Marca no disponible"] <- NA
+# "Precio no disponible" como NA
+productos$Precio[productos$Precio == "Precio no disponible"] <- NA
+# "Unidad no disponible" como NA
+productos$unidad[productos$unidad == "Unidad no disponible"] <- NA
+# "Precio por unidad no disponible" como NA
+productos$precio_unidad[productos$precio_unidad == "Precio por unidad no disponible"] <- NA
+# "Categoría no disponible" como NA
+productos$Categoria[productos$Categoria == "Categoría no disponible"] <- NA
+# "Subcategoría no disponible" como NA
+productos$Subcategoria[productos$Subcategoria == "Subcategoría no disponible"] <- NA
+# "Subcategoría no disponible" como NA
+productos$Estado[productos$Estado == "Estado no disponible"] <- NA
+```
+
+```{r include = FALSE}
+# Preparación variables
+productos <- productos %>% 
+  mutate(Precio = gsub(" €", "", Precio),
+         Precio = gsub(",", ".", Precio),
+         Precio = as.numeric(Precio),
+         unidad = ifelse(str_detect(precio_unidad, "/"), str_split(precio_unidad, "/", simplify = TRUE)[ ,2], unidad),
+         precio_unidad = ifelse(str_detect(precio_unidad, "/"), str_split(precio_unidad, "/", simplify = TRUE)[,1], precio_unidad),
+         precio_unidad = gsub("\\€", "", precio_unidad),
+         precio_unidad = gsub(",", ".", precio_unidad),
+         # Utilizamos sub() para sacar solo el primer punto que se encuentre (quitar puntos de los miles)
+         precio_unidad = ifelse(str_count(precio_unidad, pattern = "\\.") > 1, sub("\\.", "", precio_unidad), precio_unidad),
+         precio_unidad = str_remove_all(precio_unidad, "\\s"),
+         precio_unidad = as.numeric(precio_unidad),
+         Marca = as.factor(Marca),
+         Supermercado = as.factor(Supermercado),
+         unidad = as.factor(unidad),
+         Categoria = as.factor(Categoria),
+         Subcategoria = as.factor(Subcategoria),
+         Estado = as.factor(Estado)
+         )
+
+# To DO 
+
+# Unificar factores con valores diferentes en cada tienda pero que significan lo mismo.
+```
+
+```{r summary, include = FALSE}
+summary(productos)
+```
+
+
