@@ -5,25 +5,26 @@ date: "2024-06-04"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = TRUE)
 ```
 
 ## Lectura de datos
 
-```{r lectura, include = FALSE}
+```{r lectura, warning = FALSE, message = FALSE}
 library(readr)
 library(stringr)
 library(dplyr)
+library(forcats)
 productos <- read_csv("productos.csv")
 ```
 
-```{r head, include = FALSE}
-summary(productos)
+```{r head}
+head(productos)
 ```
 
 ## Preparación datos
 
-```{r nas, include = FALSE}
+```{r nas}
 # "Nombre no disponible" como NA
 productos$Nombre[productos$Nombre == "Nombre no disponible"] <- NA
 # "Marca no disponible como NA
@@ -42,7 +43,7 @@ productos$Subcategoria[productos$Subcategoria == "Subcategoría no disponible"] 
 productos$Estado[productos$Estado == "Estado no disponible"] <- NA
 ```
 
-```{r include = FALSE}
+```{r}
 # Preparación variables
 productos <- productos %>% 
   mutate(Precio = gsub(" €", "", Precio),
@@ -69,8 +70,60 @@ productos <- productos %>%
 # Unificar factores con valores diferentes en cada tienda pero que significan lo mismo.
 ```
 
-```{r summary, include = FALSE}
-summary(productos)
+```{r}
+# Unificar levels de la variable unidad
+productos$unidad <- fct_collapse(productos$unidad, KILO = c(" Kgr.", "1 Kg", "KILO")) %>% 
+                        fct_collapse(UNIDAD = c("1 U", " Und.", "UNIDAD")) %>% 
+                        fct_collapse(LITRO = c(" Litro", "1 L", "LITRO")) %>%
+                        fct_collapse(METRO = c(" MTS", "1 M", "METRO")) %>% 
+                        fct_collapse(`100ml` = c(" 100ml", "100 ml", "100 ML.")) %>% # Transofrmar a LITRO?
+                        fct_collapse(`100g` = c(" 100GR", "100 Gr", "100 GR.")) %>% # Transdormar a KILO?
+                        fct_collapse(DOCENA = c(" doce", "1 Dc", "DOCENA")) %>% # Transformar a UNIDAD?
+                        fct_collapse(LAVADO = c("1 Lv", "LAVADO", "1 Do", " Dosis")) #Transformar a UNIDAD?
 ```
 
 
+```{r summary}
+summary(productos)
+```
+
+Veient el resum dels valor de cada una de els variables, es pot eliminar la variable `Fecha` ja que té tots els seus valors iguals, per tant no aportarà cap valor a l'hora de fer l'análisis. 
+Per altra banda, la columna `URL` tampoc aporta cap valor analític, ja que només aporta el directori web de cada article. 
+
+```{r select}
+productos <- productos[ ,-c(5,6)]
+```
+
+
+```{r faltantes}
+# Proporción de valores faltantes por columna
+colSums(is.na(productos)) / nrow(productos)
+```
+Hi haurà que estudiar les variables `Marca`, `Categoría` y `Subcategoría`, ja que tenen una proporció de valors faltants elevats. 
+Respecte a les altres variables es ronda un 2\% i possiblament siguin el mateixos casos. Per tant, imputarem tots els valors que no tenen un registre ni a la varaibles `Nombre`, `Precio`, `unidad` ni `precio_unidad`, ja que no aporten cap valor analític.
+
+```{r}
+# Faltantes por supermercado
+table(productos$Supermercado, is.na(productos$Marca)) %>% prop.table(margin = 2)
+
+# Faltantes por supermercado
+table(productos$Supermercado, is.na(productos$Categoria)) %>% prop.table(margin = 2)
+
+# Faltantes por supermercado
+table(productos$Supermercado, is.na(productos$Subcategoria)) %>% prop.table(margin = 2)
+```
+Les variables `Categoria` i `Subcategoria` no tenen cap registre de quan la variable `Supermercado` pren el valor de `Consum`. És a dir, pels articles del supermercat Consum no hi ha cap Categoria ni Subcategoria registrada.
+Per tant, si es vol analitzar els articles segons les seves categories o subcategories, no es podrà tenir en compte el supermercat Consum. 
+
+En canvi a la variable `Marca`, el 85\% de les dades faltants pertanyen a al Supermercat `Dia`. 
+
+
+```{r}
+# Proporcion de filas con valores faltantes en Nombre, Precio, unidad, precio_unidad
+sum(is.na(productos$Nombre) & is.na(productos$Precio) & is.na(productos$unidad) & is.na(productos$precio_unidad))/nrow(productos)
+```
+
+```{r}
+# Eliminamos todas las filas que se han contado anteriormente
+productos <- productos[!(is.na(productos$Nombre) & is.na(productos$Precio) & is.na(productos$unidad) & is.na(productos$precio_unidad)), ]
+```
