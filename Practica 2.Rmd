@@ -277,8 +277,8 @@ ggplot(productos, aes(x = "", y = Precio)) +
 # Asegurando que las variables están en formato adecuado
 productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))
 
-# Modelo de regresión lineal donde predecimos 'Precio' basado en otras características
-modelo_lineal <- lm(Precio ~ Categoria + Marca + Supermercado, data = productos)
+# Modelo de regresión lineal donde predecimos 'Precio' basado en otras características:
+modelo_lineal <- lm(Precio ~ Marca + Supermercado, data = productos_actualizados)
 summary(modelo_lineal)
 
 ```
