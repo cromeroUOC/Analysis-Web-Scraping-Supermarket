@@ -250,5 +250,103 @@ outliers <- productos %>%
 
 print(outliers)
 
+# Filtrar outliers
+outliers <- productos %>%
+  filter(Precio < lower_bound | Precio > upper_bound)
+
+# Contar outliers
+n_outliers <- nrow(outliers)
+
+# Imprimir el número de outliers
+print(n_outliers)
+
+# Boxplot para visualizar los outliers en el contexto de todos los precios
+ggplot(productos, aes(x = "", y = Precio)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  geom_jitter(color = "red", width = 0.05) +
+  theme_minimal() +
+  ggtitle("Distribución de Precios con Outliers Marcados")
+
+
+```
+
+4.1 Aplica un model supervisat i un no supervisat a les dades i comenta els resultats obtinguts.
+
+4.1.1 Modelo Supervisado
+```{r}
+# Asegurando que las variables están en formato adecuado
+productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))
+
+# Modelo de regresión lineal donde predecimos 'Precio' basado en otras características
+modelo_lineal <- lm(Precio ~ Categoria + Marca + Supermercado, data = productos)
+summary(modelo_lineal)
+
+```
+
+4.1.2 Modelo No Supervisado
+```{r}
+
+productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))
+productos$precio_unidad <- as.numeric(gsub("€", "", gsub(",", ".", productos$precio_unidad)))
+
+productos <- productos %>%
+  filter(!is.na(Precio) & !is.na(precio_unidad) & 
+         !is.nan(Precio) & !is.nan(precio_unidad) &
+         Precio != Inf & Precio != -Inf & 
+         precio_unidad != Inf & precio_unidad != -Inf)
+
+set.seed(123)
+
+# Ejecutar k-means con 3 centros
+kmeans_resultado <- kmeans(productos[, c("Precio", "precio_unidad")], centers = 3)
+
+# Agregar los clusters al dataframe para análisis posterior
+productos$Cluster <- as.factor(kmeans_resultado$cluster)
+
+# Visualizar los resultados de k-means
+library(ggplot2)
+ggplot(productos, aes(x = Precio, y = precio_unidad, color = Cluster)) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Clustering de Productos por Precio y Precio por Unidad") +
+  theme_minimal()
+
+
+```
+
+4.2 Prueba de Contraste de Hipótesis
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+
+productos_actualizados$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos_actualizados$Precio)))  # Limpieza de datos
+
+# Agregamos una nueva columna para identificar si el nombre del producto contiene 'aceite'
+productos_actualizados <- productos_actualizados %>%
+  mutate(contiene_aceite = ifelse(grepl("aceite", Nombre, ignore.case = TRUE), "Con Aceite", "Sin Aceite"))
+
+# Calculamos el precio medio general excluyendo NA
+precio_medio_general <- mean(productos_actualizados$Precio, na.rm = TRUE)
+
+# Subconjunto de productos que contienen 'aceite' en el nombre
+productos_con_aceite <- productos_actualizados %>%
+  filter(contiene_aceite == "Con Aceite") %>%
+  pull(Precio)
+
+# Prueba de normalidad
+shapiro_test_aceite <- shapiro.test(productos_con_aceite)
+print(shapiro_test_aceite)
+
+# Dependiendo de la normalidad, realizar t-test o Wilcoxon test
+if (shapiro_test_aceite$p.value > 0.05) {
+  t_test_result <- t.test(productos_con_aceite, mu = precio_medio_general)
+  print(t_test_result)
+} else {
+  print("Distribución no normal, aplicando prueba no paramétrica.")
+  wilcox_test_result <- wilcox.test(productos_con_aceite, mu = precio_medio_general, alternative = "greater")
+  print(wilcox_test_result)
+}
+
+
 ```
 
