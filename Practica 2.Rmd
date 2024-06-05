@@ -321,29 +321,29 @@ library(ggplot2)
 
 productos_actualizados$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos_actualizados$Precio)))  # Limpieza de datos
 
-# Agregamos una nueva columna para identificar si el nombre del producto contiene 'aceite'
+# Agregamos una nueva columna para identificar si el nombre del producto contiene 'Jamon'
 productos_actualizados <- productos_actualizados %>%
-  mutate(contiene_aceite = ifelse(grepl("aceite", Nombre, ignore.case = TRUE), "Con Aceite", "Sin Aceite"))
+  mutate(contiene_Jamon = ifelse(grepl("Jamon", Nombre, ignore.case = TRUE), "Con Jamon", "Sin Jamon"))
 
 # Calculamos el precio medio general excluyendo NA
 precio_medio_general <- mean(productos_actualizados$Precio, na.rm = TRUE)
 
-# Subconjunto de productos que contienen 'aceite' en el nombre
-productos_con_aceite <- productos_actualizados %>%
-  filter(contiene_aceite == "Con Aceite") %>%
+# Subconjunto de productos que contienen 'Jamon' en el nombre
+productos_con_Jamon <- productos_actualizados %>%
+  filter(contiene_Jamon == "Con Jamon") %>%
   pull(Precio)
 
 # Prueba de normalidad
-shapiro_test_aceite <- shapiro.test(productos_con_aceite)
-print(shapiro_test_aceite)
+shapiro_test_Jamon <- shapiro.test(productos_con_Jamon)
+print(shapiro_test_Jamon)
 
 # Dependiendo de la normalidad, realizar t-test o Wilcoxon test
-if (shapiro_test_aceite$p.value > 0.05) {
-  t_test_result <- t.test(productos_con_aceite, mu = precio_medio_general)
+if (shapiro_test_Jamon$p.value > 0.05) {
+  t_test_result <- t.test(productos_con_Jamon, mu = precio_medio_general)
   print(t_test_result)
 } else {
   print("Distribución no normal, aplicando prueba no paramétrica.")
-  wilcox_test_result <- wilcox.test(productos_con_aceite, mu = precio_medio_general, alternative = "greater")
+  wilcox_test_result <- wilcox.test(productos_con_Jamon, mu = precio_medio_general, alternative = "greater")
   print(wilcox_test_result)
 }
 
