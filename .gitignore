@@ -2,3 +2,5 @@ source/__pycache__/*
 /source/__pycache__
 .Rhistory
 .RDataTmp1
+~WRL3145.tmp
+*.tmp
