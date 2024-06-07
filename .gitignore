@@ -4,3 +4,4 @@ source/__pycache__/*
 .RDataTmp1
 ~WRL3145.tmp
 *.tmp
+source/.RData
