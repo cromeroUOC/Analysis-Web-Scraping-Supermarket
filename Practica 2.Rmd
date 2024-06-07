@@ -1,30 +1,76 @@
 ---
 title: "Practica 2"
-output: html_document
+author: "Enric Sintes Arguimbau i Carlos Romero Matarin"
 date: "2024-06-04"
+output: 
+  pdf_document:
+    toc: true
+    number_sections: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(warning = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
 ```
 
-## Lectura de datos
+\newpage
 
-```{r lectura, warning = FALSE, message = FALSE}
+# Descripció del dataset
+
+El conjunt de dades amb el qual s'ha treballat en aquest document està compost per una col·lecció d'articles disponbiles en diferents supermercats, incloent-hi un conjunt de característiques associades a cada article. Per tant, és un dataset que pot cobrar una considerable importància en el sector del retail, ja que permet comparar les característiques i preus d'articles de diferents cadenes.
+
+
+La importància d'aquest conjunt de dades rau en la seva capacitat per respondre a diverses preguntes que poden optimitzar les estratègies de negoci en aquest sector. Per altra banda, pot servir per millorar l'experiències del client a l'hora de fer la seva compra a, triant la cadèna de supermercats que més s'adeqüi a les necessitats de cada un, tant sigui pel preu de certs productes a cada una de les cadenes, pel surtit d'articles que hi ha o per les marques que es troben a cada una. \
+Així doncs, els principals análisis que es poden fer de les dades son, classificació de productes, anàlisis de preus o comparació de marques. 
+
+
+El conjunt de dades inclou diverses variables que descriuen les característiques de cada producte:
+
+  * Nombre: descriptiu del producte. 
+  * Marca: marca comercial del producte.
+  * Precio: preu de venta al públic. 
+  * Supermercat: cadèna de supermercats al que pertany l'article.
+  * Hora: hora d'extracció de la dada. 
+  * URL: direcció web on es troba l'article. 
+  * Fecha: dia d'extracció.
+  * Hora: hora d'extracció. 
+  * unidad: indica el tipus d'unitats amb el que es serveix producte.
+  * precio_unidad: preu per unitat en \€.
+  * Categoria: secció de supermercat a la que pertany el producte. Tipus d'article.
+  * Subcategoria: subsecció de supermercat a la que pertany.
+  * Estado: disponibilitat de l'article al supermercat en questió.
+  
+Tot plegat comporta un conjunt de dades de 12 columnes i $25625$ files. 
+
+Aquest volum de dades permet un anàlisi detallada i comparativa de productes, cadenes de supermercats i marques.
+
+# Integració i selecció
+
+```{r lectura, warning = FALSE, message = FALSE, include = FALSE}
 library(readr)
 library(stringr)
 library(dplyr)
 library(forcats)
+library(knitr)
+library(ggplot2)
+library(stringi)
+library(gridExtra)
+
 productos <- read_csv("productos.csv")
 ```
 
-```{r head}
+```{r head, include = FALSE}
 head(productos)
+dim(productos)
 ```
 
-## Preparación datos
+# Neteja de dades
 
-```{r nas}
+## Valors faltants
+
+En primer lloc s'ha identificat aquells valors de les variables que identifiquen valors faltants i s'ha trobat que a cada variable es registre un cadena de caràters que descriu que hi ha un valor faltant. Per exemple, a la variable `Nombre` s'han registrat els valors faltants com `Nombre no disponible`, a `Marca` `Marca no disponible`, i així successivament. 
+Tots aquests valors s'han substituït per `NA` per poder tractar les variables correctament.
+
+```{r nas, include = FALSE}
 # "Nombre no disponible" como NA
 productos$Nombre[productos$Nombre == "Nombre no disponible"] <- NA
 # "Marca no disponible como NA
@@ -43,7 +89,24 @@ productos$Subcategoria[productos$Subcategoria == "Subcategoría no disponible"] 
 productos$Estado[productos$Estado == "Estado no disponible"] <- NA
 ```
 
-```{r}
+## Tipus de dades
+
+A continuació, s'han corregit totes les variables que contenien caràcters especials i que no permeten tractar les variables així com és degut. 
+Per exemple, la variable `Precio` conté el signe \€ i per tant no permet tractar la variable com un valor numèric. Llavors:
+
+  * `Nombre`: cadena de caràcters.
+  * `Precio`: s'ha extret el signe \€, els espais que hi podria haver i s'ha canviat les , dels decials per punts `.`. D'aquesta manera s'ha pogut transformar la variable a numèric. 
+  * `unidad`: s'ha convertit a factor i s'han unificat les categories que significaven el mateix. Per exemple: `1 U`, `Und.` i `UNIDAD` s'ha unificat a un sol nivell `UNIDAD`. 
+  * `precio_unidad`: s'ha fet el mateix tractament que la variable `Precio` extraient signes i canviar les , dels decimals per punts. També s'ha trobat algún cas que s'utilitzava el `.` com a separadors del milers i també s'ha eliminat. Transformant posterior a valor numèric.
+  * `Marca`: variable categòrica, per tant s'ha trasnformat a factor.
+  * `Supermercat`: transformat a factor.
+  * `Hora`: variable de tipus temps.
+  * `Fecha`: variable de tipus data. 
+  * `Caregoría`: vairable categòrica, per tant, factor.
+  * `Subcategoria`: conversió a factor.
+  * `Estado`: conversió a factor.
+  
+```{r, include = FALSE}
 # Preparación variables
 productos <- productos %>% 
   mutate(Precio = gsub(" €", "", Precio),
@@ -64,45 +127,76 @@ productos <- productos %>%
          Subcategoria = as.factor(Subcategoria),
          Estado = as.factor(Estado)
          )
-
-# To DO 
-
-# Unificar factores con valores diferentes en cada tienda pero que significan lo mismo.
 ```
 
-```{r}
+```{r include = FALSE}
 # Unificar levels de la variable unidad
 productos$unidad <- fct_collapse(productos$unidad, KILO = c(" Kgr.", "1 Kg", "KILO")) %>% 
                         fct_collapse(UNIDAD = c("1 U", " Und.", "UNIDAD")) %>% 
                         fct_collapse(LITRO = c(" Litro", "1 L", "LITRO")) %>%
                         fct_collapse(METRO = c(" MTS", "1 M", "METRO")) %>% 
-                        fct_collapse(`100ml` = c(" 100ml", "100 ml", "100 ML.")) %>% # Transofrmar a LITRO?
-                        fct_collapse(`100g` = c(" 100GR", "100 Gr", "100 GR.")) %>% # Transdormar a KILO?
-                        fct_collapse(DOCENA = c(" doce", "1 Dc", "DOCENA")) %>% # Transformar a UNIDAD?
-                        fct_collapse(LAVADO = c("1 Lv", "LAVADO", "1 Do", " Dosis")) #Transformar a UNIDAD?
+                        fct_collapse(`100ml` = c(" 100ml", "100 ml", "100 ML.")) %>% 
+                        fct_collapse(`100g` = c(" 100GR", "100 Gr", "100 GR.")) %>% 
+                        fct_collapse(DOCENA = c(" doce", "1 Dc", "DOCENA")) %>% 
+                        fct_collapse(LAVADO = c("1 Lv", "LAVADO", "1 Do", " Dosis")) 
 ```
 
+Un cop transformades les dades correctament, s'estudien altres tipus de valors que poden significar pèrdua de dades. Com per exemple, valors de la variable `Precio` o `precio_unitario` que tinguin valors 0 o negatius. Entre aquests s'han trobat dos casos que tenen un `precio_unidad` igual a 0, degut al valor tant reduït que té cada unitat d'aquests productes.
+Per evitar que aparegui el valor 0, es calcularà manualment el valor real dividint el preu per les unitats de cada article.
 
-```{r summary}
-summary(productos)
+```{r include = FALSE}
+productos %>% filter(!is.na(precio_unidad) & precio_unidad <= 0)
+
+productos$precio_unidad[!is.na(productos$Nombre) & productos$Nombre == "Bastoncillo algodon papel ifa unnia 200ud"] <- productos$Precio[!is.na(productos$Nombre) & productos$Nombre == "Bastoncillo algodon papel ifa unnia 200ud"]/200
+
+productos$precio_unidad[!is.na(productos$Nombre) & productos$Nombre == "Palillo redondo torneado ifa sabe 550ud"] <- productos$Precio[!is.na(productos$Nombre) & productos$Nombre == "Palillo redondo torneado ifa sabe 550ud"]/550
 ```
 
-Veient el resum dels valor de cada una de els variables, es pot eliminar la variable `Fecha` ja que té tots els seus valors iguals, per tant no aportarà cap valor a l'hora de fer l'análisis. 
-Per altra banda, la columna `URL` tampoc aporta cap valor analític, ja que només aporta el directori web de cada article. 
-
-```{r select}
+```{r select, include=FALSE}
 productos <- productos[ ,-c(5,6)]
 ```
 
+## Tractament de valors faltants
 
-```{r faltantes}
+Un cop corregits els errors, hi ha que revistar i evaluar els valors faltants `NA` de cada una de les variables.
+
+```{r faltantes, echo = FALSE}
 # Proporción de valores faltantes por columna
-colSums(is.na(productos)) / nrow(productos)
-```
-Hi haurà que estudiar les variables `Marca`, `Categoría` y `Subcategoría`, ja que tenen una proporció de valors faltants elevats. 
-Respecte a les altres variables es ronda un 2\% i possiblament siguin el mateixos casos. Per tant, imputarem tots els valors que no tenen un registre ni a la varaibles `Nombre`, `Precio`, `unidad` ni `precio_unidad`, ja que no aporten cap valor analític.
+missingvalues <- colSums(is.na(productos)) / nrow(productos)
 
-```{r}
+missing_df <- data.frame(
+  Column = names(missingvalues),
+  Proportion = missingvalues
+)
+
+missing_df %>% 
+  ggplot(aes(x = Column, y = Proportion)) + 
+  geom_bar(stat = "identity",fill = "gray40") + 
+  labs(x = "Column", y = "Proportion of Missing Values") + 
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+Les variables `Marca`, `Categoría` y `Subcategoría`, tenen una proporció de valors faltants elevats. És evident que si s'esborressin tots els casos faltants d'aquestes variables es perdrien molts casos i molta informació de valor per l'anàlisi posterior. Per tant, s'ha cercat una alternativa per evitar l'imputació de tots aquests valors. Aquesta alternativa consisteix en utilitzar un algoritme per completar les seccions faltants a partir del nom de cada producte. És a dir, a partir de les categories existents i dels noms dels productes d'aquestes categories, es fa una estimació de quina categoria pot ser la més adecuada per cada article li falta aquest valor. Exactament, el que es fa és, per un producte sense categoria i subcategoria, cercar els productes amb categoria i subcategoria conegudes amb més paraules coincidents i assigna la categoria i subcategoria més freqüents.
+Així i tot, hi ha productes que no s'ha pogut classificar correctament, però tot i així s'ha reduït considerablement els valors faltants.
+
+
+```{r include = FALSE}
+# Proporcion de filas con valores faltantes en Nombre, Precio, unidad, precio_unidad
+propna <- sum(is.na(productos$Nombre) & is.na(productos$Precio) & is.na(productos$unidad) & is.na(productos$precio_unidad))/nrow(productos)
+```
+
+Respecte a les altres variables es ronda un 2\% de valors faltants i possiblament siguin els mateixos casos. Per tant, imputarem tots els valors que no tenen un registre ni a la varaibles `Nombre`, `Precio`, `unidad` ni `precio_unidad`, ja que no aporten cap valor analític. Aquests casos signifiquen exactament `r round(propna,4)` de les files.  
+
+
+```{r include = FALSE}
+# Eliminamos todas las filas que se han contado anteriormente
+productos <- productos[!(is.na(productos$Nombre) & is.na(productos$Precio) & is.na(productos$unidad) & is.na(productos$precio_unidad)), ]
+```
+
+
+```{r include = FALSE}
 # Faltantes por supermercado
 table(productos$Supermercado, is.na(productos$Marca)) %>% prop.table(margin = 2)
 
@@ -112,31 +206,9 @@ table(productos$Supermercado, is.na(productos$Categoria)) %>% prop.table(margin 
 # Faltantes por supermercado
 table(productos$Supermercado, is.na(productos$Subcategoria)) %>% prop.table(margin = 2)
 ```
-Les variables `Categoria` i `Subcategoria` no tenen cap registre de quan la variable `Supermercado` pren el valor de `Consum`. És a dir, pels articles del supermercat Consum no hi ha cap Categoria ni Subcategoria registrada.
-Per tant, si es vol analitzar els articles segons les seves categories o subcategories, no es podrà tenir en compte el supermercat Consum. 
-
-En canvi a la variable `Marca`, el 85\% de les dades faltants pertanyen a al Supermercat `Dia`. 
 
 
-```{r}
-# Proporcion de filas con valores faltantes en Nombre, Precio, unidad, precio_unidad
-sum(is.na(productos$Nombre) & is.na(productos$Precio) & is.na(productos$unidad) & is.na(productos$precio_unidad))/nrow(productos)
-```
-
-```{r}
-# Eliminamos todas las filas que se han contado anteriormente
-productos <- productos[!(is.na(productos$Nombre) & is.na(productos$Precio) & is.na(productos$unidad) & is.na(productos$precio_unidad)), ]
-```
-
-Poemos realizar una estimación de la categoria y subcategoria por medio de las otras filas:
-
-```{r}
-library(readr)
-library(dplyr)
-library(stringr)
-library(stringi)
-
-
+```{r include = FALSE}
 # Separar datos en dos conjuntos: uno con categorías conocidas y otro sin ellas
 datos_con_categoria <- productos %>% filter(!is.na(Categoria) & !is.na(Subcategoria))
 datos_sin_categoria <- productos %>% filter(is.na(Categoria) | is.na(Subcategoria))
@@ -184,19 +256,17 @@ datos_sin_categoria[c("Categoria", "Subcategoria")] <- resultados
 
 # Combinar de nuevo con los datos originales
 productos_actualizados <- bind_rows(datos_con_categoria, datos_sin_categoria)
-
-
 ```
 
-
-```{r}
+```{r include = FALSE}
 # Faltantes por supermercado
 table(productos_actualizados$Supermercado, is.na(productos_actualizados$Categoria)) %>% prop.table(margin = 2)
 
 # Faltantes por supermercado
 table(productos_actualizados$Supermercado, is.na(productos_actualizados$Subcategoria)) %>% prop.table(margin = 2)
 ```
-```{r}
+
+```{r include = FALSE}
 # Filtrar productos del supermercado 'Consum'
 productos_consum <- productos %>%
   filter(Supermercado == "Consum")
@@ -215,11 +285,16 @@ print(productos_consum)
 print(productos_consum_actualizado)
 ```
 
-Manejo de Datos Extremos:
-```{r}
-#  'Precio' es numérico
-library(ggplot2)
+## Valors extrems
 
+Per estudiar els valors extrems s'estudien els valors numèrics i estudiarem els valors que poden distorsionar els estudis analítics. Aquesta variable és: `Precio`. 
+
+El primer pas és estudiar la seva distribució, que es pot valorar tant amb un diagrama de barres com amb un boxplot, que és on es veuen millor els outliers.  
+
+```{r echo = FALSE}
+par(mfrow=c(1,2))
+
+{
 # Histograma de precios
 ggplot(productos, aes(x = Precio)) + 
   geom_histogram(binwidth = 1, fill = "blue", color = "black") +
@@ -231,10 +306,17 @@ ggplot(productos, aes(y = Precio)) +
   geom_boxplot(fill = "tomato", color = "black") +
   theme_minimal() +
   ggtitle("Boxplot de Precios")
+}
+```
 
+Es pot veure com la variable `Precios` sí té valors extrems que poden distorsionar les dades. 
+
+
+Un cop visualitzats els valors extrems, els podem detectar considerant que un outlier son tots els punts que es troben a una distància del primer o tercer quartil, més gran que 1.5 cops el rang interquantílic. D'aquesta manera, al tenir identificats els valors extrems, podem eliminar-los.
+
+```{r echo = FALSE}
 # Asegurando que Precio es numérico (si aún no se ha convertido)
-productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))
-
+# productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))
 # Calcular Q1, Q3 y IQR
 Q1 <- quantile(productos$Precio, 0.25, na.rm = TRUE)
 Q3 <- quantile(productos$Precio, 0.75, na.rm = TRUE)
@@ -244,12 +326,6 @@ IQR <- Q3 - Q1
 lower_bound <- Q1 - 1.5 * IQR
 upper_bound <- Q3 + 1.5 * IQR
 
-# Filtrar datos extremos
-outliers <- productos %>%
-  filter(Precio < lower_bound | Precio > upper_bound)
-
-print(outliers)
-
 # Filtrar outliers
 outliers <- productos %>%
   filter(Precio < lower_bound | Precio > upper_bound)
@@ -257,23 +333,94 @@ outliers <- productos %>%
 # Contar outliers
 n_outliers <- nrow(outliers)
 
-# Imprimir el número de outliers
-print(n_outliers)
-
 # Boxplot para visualizar los outliers en el contexto de todos los precios
 ggplot(productos, aes(x = "", y = Precio)) +
   geom_boxplot(fill = "lightblue", color = "black") +
-  geom_jitter(color = "red", width = 0.05) +
+  geom_jitter(color = "red", width = 0.0001) +
   theme_minimal() +
   ggtitle("Distribución de Precios con Outliers Marcados")
+```
+En total s'han trobat `r n_outliers` del quals es reparteixen entre els supermercats de la següent manera:
+
+```{r echo = FALSE}
+outliers %>% 
+  group_by(Supermercado) %>% 
+  summarise(n = n()/n_outliers) %>% 
+ggplot(aes(x = Supermercado, y = n)) + 
+  geom_col() + 
+  labs(x = "Supermercado", y = "Proporción de los outliers", caption = "Distribución de los outliers entre los supermercados") + 
+  theme_classic()
+```
+Per tant, es por veure que quasi la meitat dels outliers trobats es troben en el supermercat Consum, mentre que a Dia, és on hi ha menys freqüència de outliers. Això no vol dir que Consum sigui el supermercat més car, sinó que té més articles de preu elevat.
 
 
+Tot i així, resvisant els valors extrems, considerem que no és necessari corregir ni eliminar-los, ja que no es tracten d'errors d'entrada, sinó que es tracta d'articles de més alta qualitat que tenen un preu alt, però formen part de l'assortiment normal d'un supermercat. Així doncs, formaràn part de les dades a analitzar.
+
+
+## Representació variables
+  
+```{r echo = FALSE, fig.height = 4}
+# Crear gráficos individuales
+g1 <- ggplot(productos, aes(x = Precio)) + 
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  theme_minimal() +
+  ggtitle("Distribución de Precios")
+
+g2 <- ggplot(productos, aes(x = unidad)) + 
+  geom_bar(binwidth = 1, fill = "blue", color = "black") +
+  theme_minimal() +
+  ggtitle("Distribución unidad")
+
+g3 <- ggplot(productos, aes(x = precio_unidad)) + 
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  theme_minimal() +
+  ggtitle("Distribución precio unidad")
+
+g4 <- ggplot(productos, aes(x = Marca)) + 
+  geom_bar(binwidth = 1, fill = "blue", color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("Distribución Marca")
+
+g5 <- ggplot(productos, aes(x = Supermercado)) + 
+  geom_bar(binwidth = 1, fill = "blue", color = "black") +
+  theme_minimal() +
+  ggtitle("Distribución Supermercado")
+
+g6 <- ggplot(productos, aes(x = Categoria)) + 
+  geom_bar(binwidth = 1, fill = "blue", color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("Distribución categoría")
+
+g7 <- ggplot(productos, aes(x = Subcategoria)) + 
+  geom_bar(binwidth = 1, fill = "blue", color = "black") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_minimal() +
+  ggtitle("Distribución subcategoría")
+
+g8 <- ggplot(productos, aes(x = Estado)) + 
+  geom_bar(binwidth = 1, fill = "blue", color = "black") +
+  theme_minimal() +
+  ggtitle("Distribución estado")
+
+# Combinar gráficos en una sola figura
+grid.arrange(g1, g3, ncol = 1)
+```
+```{r echo = FALSE, fig.height=4}
+grid.arrange(g2, g5, g8, ncol = 1)
+```
+```{r echo = FALSE, fig.height=4}
+grid.arrange(g6, g7, ncol = 2)
 ```
 
-4.1 Aplica un model supervisat i un no supervisat a les dades i comenta els resultats obtinguts.
+# Anàlisi de les dades
 
-4.1.1 Modelo Supervisado
-```{r}
+## Models
+
+### Model supervisat
+
+```{r include = FALSE}
 # Asegurando que las variables están en formato adecuado
 productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))
 
@@ -283,8 +430,8 @@ summary(modelo_lineal)
 
 ```
 
-4.1.2 Modelo No Supervisado
-```{r}
+### Model no supervisat
+```{r include = FALSE}
 
 productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))
 productos$precio_unidad <- as.numeric(gsub("€", "", gsub(",", ".", productos$precio_unidad)))
@@ -313,8 +460,9 @@ ggplot(productos, aes(x = Precio, y = precio_unidad, color = Cluster)) +
 
 ```
 
-4.2 Prueba de Contraste de Hipótesis
-```{r}
+## Prueba de Contraste de Hipótesis
+
+```{r include = FALSE}
 library(readr)
 library(dplyr)
 library(ggplot2)
@@ -346,7 +494,5 @@ if (shapiro_test_Jamon$p.value > 0.05) {
   wilcox_test_result <- wilcox.test(productos_con_Jamon, mu = precio_medio_general, alternative = "greater")
   print(wilcox_test_result)
 }
-
-
 ```
 
