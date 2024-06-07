@@ -466,7 +466,7 @@ grid.arrange(g6, g7, ncol = 2)
 
 Basant-nos en les variables de unitat i supermercat, hem utilitzat un model de regressió lineal per predir el preu del producte a la secció de modelització supervisada. El model que hem definit cerca comprendre com aquests elements afecten el preu final del producte. Per si de cas s'ha eliminat la variable Preu els caràcters especials (€) i s'ha convertit de text a numèric.
 
-```{r include = True}
+```{r include = TRUE}
 # Asegurando que las variables están en formato adecuado
 productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))
 
@@ -486,7 +486,7 @@ Podem veure que rl model té un R-quadrat ajustat relativament baix, cosa que in
 
 Hem desarrollat l'algorisme k-means per agrupar els productes en funció dels seus preus i preus per unitat per a l'anàlisi no supervisada. Primer per si de cas els preus s'han netejat i convertit en un format numèric. Despues l'agrupació esta definida en tres grups.
 
-```{r include = True}
+```{r include = TRUE}
 
 productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))
 productos$precio_unidad <- as.numeric(gsub("€", "", gsub(",", ".", productos$precio_unidad)))
@@ -527,7 +527,7 @@ Com odem veure en es el gràfic els productes han estat dividits en tres clúste
 
 Hem dut a terme una prova de contrast d'hipòtesis, enfocant-te específicament en els que contenien "Jamon" en nom seu. El procés inclou la neteja de dades, la conversió del preu de text a números i la creació d'una variable per determinar si el producte conté "Jamon" en el nom.
 
-```{r include = True}
+```{r include = TRUE}
 
 productos$Precio <- as.numeric(gsub(" €", "", gsub(",", ".", productos$Precio)))  # Limpieza de datos
 
@@ -614,4 +614,5 @@ contributions <- data.frame(
 kable(contributions, caption = "Resum de Contribucions")
 ```
 
-CRM: Carlos Romero Matarin ESA: Enric Sintes Arguimbau
+CRM: Carlos Romero Matarin 
+ESA: Enric Sintes Arguimbau
