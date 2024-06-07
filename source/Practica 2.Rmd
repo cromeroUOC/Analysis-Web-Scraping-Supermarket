@@ -3,9 +3,6 @@ title: "Practica 2"
 author: "Enric Sintes Arguimbau i Carlos Romero Matarin"
 date: "2024-06-04"
 output:
-  html_document:
-    toc: true
-    df_print: paged
   pdf_document:
     toc: true
     number_sections: true
@@ -30,7 +27,6 @@ El conjunt de dades inclou diverses variables que descriuen les característique
 -   Marca: marca comercial del producte.
 -   Precio: preu de venta al públic.
 -   Supermercat: cadèna de supermercats al que pertany l'article.
--   Hora: hora d'extracció de la dada.
 -   URL: direcció web on es troba l'article.
 -   Fecha: dia d'extracció.
 -   Hora: hora d'extracció.
@@ -40,7 +36,7 @@ El conjunt de dades inclou diverses variables que descriuen les característique
 -   Subcategoria: subsecció de supermercat a la que pertany.
 -   Estado: disponibilitat de l'article al supermercat en questió.
 
-Tot plegat comporta un conjunt de dades de 12 columnes i $25625$ files.
+Tot plegat comporta un conjunt de dades de 12 columnes i 25625 files.
 
 Aquest volum de dades permet un anàlisi detallada i comparativa de productes, cadenes de supermercats i marques.
 
@@ -76,7 +72,7 @@ Com ja hem indicat el conjunt de dades de productos.csv té 25.625 entrades, cad
 
 El quadre de dades comença amb una varietat d'articles, com detergents, lleixiu, maquinetes d'un sol ús, cera per a terra, etc. Aquesta primera mostra la varietat de productes disponibles al supermercat Consum, amb informació detallada sobre la marca, el preu i enllaços directes als productes, també podem veure com hi ha registres sense categoria.
 
-```{r head}
+```{r head, echo = FALSE}
 head(productos)
 #dim(productos)
 ```
@@ -89,15 +85,15 @@ Dir que encara que la majoria de marques són identificables, un total de 2.711 
 
 Amb més cal dir que hi ha 7.031 preus per unitat únics i preus que varien àmpliament, per això podem dir que el conjunt de dades ofereix dades per a l'anàlisi de tendències de preus i comportaments de compra dins del context dels tres supermercats inclosos, destacant especialment Consum, on s'han registrat la majoria de les entrades.
 
-```{r}
-describe(productos)
+```{r, echo = FALSE}
+describe(productos)  
 ```
 
 **Nombre de productes per supermercat:**
 
 El gràfic mostra que el supermercat amb més productes registrats és "Consum" (8.972), seguit de prop per "Dia" (8.840) i "Supermercados Mas" (7.813). Segons aquesta distribució, "consum" i "dia" són els principals proveïdors de productes de la base de dades.
 
-```{r}
+```{r, echo = FALSE}
 # Calculamos el conteo de productos por supermercado
 supercado_cuentas <- productos %>% 
   count(Supermercado) %>%
@@ -147,7 +143,7 @@ A continuació, s'han corregit totes les variables que contenien caràcters espe
 -   `unidad`: s'ha convertit a factor i s'han unificat les categories que significaven el mateix. Per exemple: `1 U`, `Und.` i `UNIDAD` s'ha unificat a un sol nivell `UNIDAD`.
 -   `precio_unidad`: s'ha fet el mateix tractament que la variable `Precio` extraient signes i canviar les , dels decimals per punts. També s'ha trobat algún cas que s'utilitzava el `.` com a separadors del milers i també s'ha eliminat. Transformant posterior a valor numèric.
 -   `Marca`: variable categòrica, per tant s'ha trasnformat a factor.
--   `Supermercat`: transformat a factor.
+-   `Supermercado`: transformat a factor.
 -   `Hora`: variable de tipus temps.
 -   `Fecha`: variable de tipus data.
 -   `Caregoría`: vairable categòrica, per tant, factor.
@@ -249,7 +245,6 @@ table(productos$Supermercado, is.na(productos$Categoria)) %>% prop.table(margin 
 table(productos$Supermercado, is.na(productos$Subcategoria)) %>% prop.table(margin = 2)
 ```
 
-Per les dades que no tenen categoria ni subcategoria hem dit de donar-los un valor fem una relació d'aquest registre per un nom semblant en altres registres de cara a tenir un valor "estimat" d'aquestes dues variables, graciés a l'ajuda dels altres registres.
 
 ```{r include = FALSE}
 # Separar datos en dos conjuntos: uno con categorías conocidas y otro sin ellas
@@ -301,12 +296,12 @@ datos_sin_categoria[c("Categoria", "Subcategoria")] <- resultados
 productos_actualizados <- bind_rows(datos_con_categoria, datos_sin_categoria)
 ```
 
-```{r}
+```{r include = FALSE}
 # Faltantes por supermercado
-table(productos_actualizados$Supermercado, is.na(productos_actualizados$Categoria)) %>% prop.table(margin = 2)
+table(productos_actualizados$Supermercado, is.na(productos_actualizados$Categoria)) %>% prop.table(margin = 1)
 
 # Faltantes por supermercado
-table(productos_actualizados$Supermercado, is.na(productos_actualizados$Subcategoria)) %>% prop.table(margin = 2)
+table(productos_actualizados$Supermercado, is.na(productos_actualizados$Subcategoria)) %>% prop.table(margin = 1)
 ```
 
 ```{r include = FALSE}
