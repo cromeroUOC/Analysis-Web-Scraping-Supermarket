@@ -611,3 +611,8 @@ kable(contributions, caption = "Resum de Contribucions")
 
 CRM: Carlos Romero Matarin 
 ESA: Enric Sintes Arguimbau
+
+```{r}
+write.csv(productos_actualizados, "productos_actualizados.csv")
+```
+
